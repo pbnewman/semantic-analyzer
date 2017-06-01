@@ -76,32 +76,32 @@ Inheritance based semantic analysis.
 	Tables
 		
 		1.	Subclass Table - To handle cyclic checking of inheritance and other 
-			 	semantics we required a table that maps a class decl to the class decl's
-			 	which extend it, that is it's direct subclasses. I implemented this by
-				simply nesting a vector within each ClassDeclInfo class and providing
-				the functionality to add and enumerate this list of subclasses. I also
-				added a reference to each ClassInfo object that points to its corresponding
-				parent ClassInfo object.
+			semantics we required a table that maps a class decl to the class decl's
+			which extend it, that is it's direct subclasses. I implemented this by
+			simply nesting a vector within each ClassDeclInfo class and providing
+			the functionality to add and enumerate this list of subclasses. I also
+			added a reference to each ClassInfo object that points to its corresponding
+			parent ClassInfo object.
 
 		2.	MethodTable and AttrTable - Both of these tables are so similar I really 
-				could refactor them into a single 'generic' table ADT. The only reason 
-				they exist in the form they do today was because I thought a different 
-				implementation may be required. Plus, a MethodTable object was alloc'd
-				so I assumed we should create a seperate class.
+			could refactor them into a single 'generic' table ADT. The only reason 
+			they exist in the form they do today was because I thought a different 
+			implementation may be required. Plus, a MethodTable object was alloc'd
+			so I assumed we should create a seperate class.
 
-				Anyway, these classes use FeatureInstaller to take advantage of the visitor
-				framework and traverse the AST populating the tables with features.
-				Both tables are nested within ClassDeclInfo like the subclass tables.
-				They are populated prior to heavy semantic analysis because Cool does
-				not require something be defined before it is used in code.
+		Anyway, these classes use FeatureInstaller to take advantage of the visitor
+		framework and traverse the AST populating the tables with features.
+		Both tables are nested within ClassDeclInfo like the subclass tables.
+		They are populated prior to heavy semantic analysis because Cool does
+		not require something be defined before it is used in code.
 
 	Cycles
 
 		1.	Algorithm - To detect cyclic inheritance I started from the root of
-				the tree (Any) and ran DFS down the tree. If I ever explore a node
-				that I have already visited then a cycle has been found.
+			the tree (Any) and ran DFS down the tree. If I ever explore a node
+			that I have already visited then a cycle has been found.
 
 		2.	Recovery - In an attempt to not fall into endlessly following parent
-				references while searching for a feature, I nested a wellFormed field
-				within ClassDeclInfo. When cyclic inheritance is detected from a node
-				its wellFormed field is set to false, and can be queried.
+			references while searching for a feature, I nested a wellFormed field
+			within ClassDeclInfo. When cyclic inheritance is detected from a node
+			its wellFormed field is set to false, and can be queried.
