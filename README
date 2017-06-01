@@ -1,0 +1,107 @@
+Philip Newman
+
+Partial Implementation for Static Semantics in Cool
+
+	The two most important tasks in this assignment are 
+	managing names and type checking. The static semantics
+	here are done in a single pass of the tree. In general,
+	name management is done in a top-down fashion while 
+	type checking bottom-up. This is because as we traverse
+	down the tree, we have yet to visit children and thus
+	do not know their type. It's not until we traverse back
+	up the tree after having evaluated everything below the
+	node that we can type check. Name management on the other
+	hand, must be performed top-down because that is the order
+	in which the scopes are introduced!
+
+	Having the visitor framework in place, using it to traverse
+	was a no-brainer. Every type of node in the AST has it's own 
+	visit method, keeping the code naturally clean and modular.
+	While it is indeed very call heavy, it cuts back on getter
+	calls for attributes by unpacking them as parameters in the
+	visit methods.
+	
+	I added some symbol fields to the Semant class to cut back
+	on symbol() calls. Additionally, I make use of helper method
+	err(node,msg) in my error reporting.
+
+	-- Class Table --
+
+		I used a hashtable to implement the ClassTable because it
+		allows for constant time lookups and requires very little
+		additional code to get it working. 
+
+		The ClassTable is passed as a vistor to each Class passed
+		through the constructor. Each class is inserted into the
+		table using <symbol(name),node> pairs.
+
+	-- Traversal --
+
+		The tree is mostly traversed using the visitor design
+		pattern. More specifically, the Semant class is passed as
+		the visitor to the elements which accept it (AST nodes).
+
+	-- Environment --
+		
+		The Environment interface is used to hold the object
+		namespace which also involves managing scopes. This is
+		implemented using the decorator pattern allowing for the
+		decorated object to be continuously wrapped in a new layer
+		or scope when a new variable is introduced.
+
+		I created a concrete base class ClassEnvironment, this is
+		the object to be decorated. When entering method scopes,
+		a snapshot/copy of the current decorated Environment is
+		stored. That Cmethod node is recursed on, and upon return
+		to the parent scope has the environment restored to its
+		previous state. This allows very fast rollbacks with only
+		minor memory overhead.
+
+		Calls to the current_env are sent through each layer of
+		the decorator, bases cases are found in the base class,
+		ClassEnvironment.
+
+		The job of subtype (partial) checking is also delegated
+		to the Environment through the methods type_leq and
+		type_lub.
+
+		Note: Future additions to the Environment interface would
+		be easy and are necessary. A worthy addition might be to
+		handle typecase nodes with the built in functionality of
+		verification they are in well formed order. A necessary
+		addition would be handling subtyping for all types.
+
+Inheritance based semantic analysis.
+
+	Tables
+		
+		1.	Subclass Table - To handle cyclic checking of inheritance and other 
+			 	semantics we required a table that maps a class decl to the class decl's
+			 	which extend it, that is it's direct subclasses. I implemented this by
+				simply nesting a vector within each ClassDeclInfo class and providing
+				the functionality to add and enumerate this list of subclasses. I also
+				added a reference to each ClassInfo object that points to its corresponding
+				parent ClassInfo object.
+
+		2.	MethodTable and AttrTable - Both of these tables are so similar I really 
+				could refactor them into a single 'generic' table ADT. The only reason 
+				they exist in the form they do today was because I thought a different 
+				implementation may be required. Plus, a MethodTable object was alloc'd
+				so I assumed we should create a seperate class.
+
+				Anyway, these classes use FeatureInstaller to take advantage of the visitor
+				framework and traverse the AST populating the tables with features.
+				Both tables are nested within ClassDeclInfo like the subclass tables.
+				They are populated prior to heavy semantic analysis because Cool does
+				not require something be defined before it is used in code.
+
+	Cycles
+
+		1.	Algorithm - To detect cyclic inheritance I started from the root of
+				the tree (Any) and ran DFS down the tree. If I ever explore a node
+				that I have already visited then a cycle has been found.
+
+		2.	Recovery - In an attempt to not fall into endlessly following parent
+				references while searching for a feature, I nested a wellFormed field
+				within ClassDeclInfo. When cyclic inheritance is detected from a node
+				its wellFormed field is set to false, and can be queried.
